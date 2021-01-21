@@ -1,217 +1,166 @@
 import TI.BoeBot;
-import TI.PinMode;
 import TI.Servo;
 
 public class RobotMain {
 
-    //IK HEB DEZE OPDRACHT SAMEN MET JOEP GEMAAKT
+    static Servo servoLinks = new Servo(12);
+    static Servo servoRechts = new Servo(13);
 
-    static Servo sLinks = new Servo(12);
-    static Servo sRechts = new Servo(13);
+    public static int speedAtStart = 1500;
 
     public static void main(String[] args) {
 
         while (true) {
-            // benodigde variables
-            String icode = "";
-            int iKnop ;
+            String binaryCode = "";
+            int button;
 
-            //kijk naar pulse lengte
-            int Pulselengte = BoeBot.pulseIn(0, false, 6000);
+            int Pulselengte = BoeBot.pulseIn(1, false, 6000);
 
-            //als pulse lengte groter is dan 2000 voer uit
-            if (Pulselengte > 2000){
-                // lengnte lijs
+            if (Pulselengte > 2000) {
                 int lengtes[] = new int[12];
-
-                //i is 0 als i kleiner is dan 12 i++
-                for (int i = 0; i < 12; i++){lengtes[i] = BoeBot.pulseIn(0, false, 20000);}
-
-                //i is 0 als i kleiner is dan 12 i++
                 for (int i = 0; i < 12; i++) {
-                    // waardes omzetten en in icode zetten
-                    icode += waardes(lengtes[i]);
+                    lengtes[i] = BoeBot.pulseIn(1, false, 20000);
                 }
-
-                // knop code van aftands bediening
-                iKnop = afstandbediening(icode);
-
-                //print iknop
-                System.out.println("Kmop = " + iKnop);
+                for (int i = 0; i < 12; i++) {
+                    System.out.print(lengtes[i] + ",");
+                    System.out.println(" ");
+                    binaryCode += checkWaarde(lengtes[i]);
+                }
+                button = checkRemote(binaryCode);
+                System.out.println("deze knop was ingedrukt " + button);
             }
-            // Even wachten
-            BoeBot.wait(10);
+            BoeBot.wait(125); //wacht
         }
     }
 
-    //ga naar aangegevnen snelheid
-    public static void snelheid(int hoogte) {
-
-        // start snelheid
-        int istart = 1500;
-
-        // als hoogte hoger is dan 0 ga lankzaam naar snelheid
-        if (hoogte > 0) {
-
-            //i is 0 i kleiner dan hoogte i+1
-            for (int i = 0; i < hoogte; i++) {
-                RobotMain.sLinks.update(istart - i);
-                RobotMain.sRechts.update(istart + i);
-                //wacht 15 ms anders gaat het te snel
-                BoeBot.wait(15);
+    public static int gaNaarSnelHeid(int snelheid) {
+        if (snelheid > 0) { //als de snelheid groter is dan 0 ga dan het volgende doen
+            for (int x = 0; x < snelheid; x++) { //for loop waarbij x telkens 1 omhoog gaat
+                servoLinks.update(snelheid + x); //snelheid wordt uiteindelijk 1300
+                servoRechts.update(snelheid - x); //snelheid wordt uiteindelijk 1700
+                BoeBot.wait(100); // wacht 0,1 seconden voordat de for loop weer aangesproken wordt
             }
-
             // rem aanroepen
-            rem();
+            noodRem();
 
-            //als hooget kleiner is dan 0 rij achteruit
-        } else if (hoogte < 0) {
-            //i is 0 i groter dan hoogte i-1
-            for (int i = 0; i > hoogte; i--) {
-                RobotMain.sLinks.update(istart - i);
-                RobotMain.sRechts.update(istart + i);
-                //wacht 23ms om lanksaam achteruit te gaan
-                BoeBot.wait(23);
+            //als snelheid kleiner is dan 0 moet de bot achteruit rijden
+        } else if (snelheid < 0) { //als de snelheid kleiner is dan 0 ga dan het volgende doen
+            for (int x = 0; x > snelheid; x--) {//for loop waarbij x telkens 1 omlaag gaat
+                servoLinks.update(snelheid - x); //zelfde als functie hierboven maar dan tegenovergestelde
+                servoRechts.update(snelheid + x);
+                BoeBot.wait(100); // wacht 0,1 seconden voordat de for loop weer aangesproken wordt
             }
-
-
             // rem aanroepen
-            rem();
-
-        } else {
-            // zet motor waarde op start dus stil
-            RobotMain.sLinks.update(istart);
-            RobotMain.sRechts.update(istart);
+            noodRem();
+        } else { //als de snelheid 0 heeft bereikt zet dan beide motoren weer op stilstand = beide 1500.
+            servoLinks.update(speedAtStart);
+            servoRechts.update(speedAtStart);
         }
-        return istart;
+        return snelheid;
     }
 
 
-    public static void draai(int graden, int snelheid) {
-
-        // start snelheid
-        int istart = 1500;
-
-        // als snelheid groter is dan 0
-        if (snelheid > 0){
-
-            // berenken draaitijd
-            int TPG = 430 / snelheid;
-
-            // bot laten draaine
-            RobotMain.sLinks.update(istart + snelheid);
-            RobotMain.sRechts.update(istart + snelheid);
-
-            // wacht berekende tijd
-            BoeBot.wait(TPG * graden);
-
-            // Boebot stoppen
-            rem();
-
-            //als snelheid kleiner dan 0 is
-        } else if (snelheid < 0) {
-
-            // -snelhei waarde naar positive waarde
-            snelheid = Math.abs(snelheid);
-
-            // berenken draaitijd
-            int TPG = 430 / snelheid;
-
-            // bot draaien
-            RobotMain.sLinks.update(istart - snelheid);
-            RobotMain.sRechts.update(istart - snelheid);
-
-            // wacht berekende tijd
-            BoeBot.wait(TPG * graden);
-
-            // Boebot stoppen
-            rem();
-
+    public static int draaiGraden(int graden, int draaiSnelheid) {
+        if (draaiSnelheid > 0) { //wanneer draaisnelheid groter dan 0 is doe dan:
+            int x = 430 / draaiSnelheid; //draai berekenen
+            RobotMain.servoLinks.update(speedAtStart + draaiSnelheid); //update linker servo
+            RobotMain.servoRechts.update(speedAtStart + draaiSnelheid); //update rechter servo
+            BoeBot.wait(x * graden); //bereken de tijd die de bot moet wachten
+            noodRem(); //gebruik functie om te stoppen
+        } else if (draaiSnelheid < 0) { //wanneer draaisnelheid kleiner dan 0 is doe dan:
+            draaiSnelheid = Math.abs(draaiSnelheid); //snelheid positief maken via math.abs
+            int x = 430 / draaiSnelheid; //wederom draai berekenen
+            RobotMain.servoLinks.update(speedAtStart - draaiSnelheid); //update linker servo
+            RobotMain.servoRechts.update(speedAtStart - draaiSnelheid); //update rechter servo
+            BoeBot.wait(x * graden); //bereken de tijd die de bot moet wachten
+            noodRem(); //gebruik functie om te stoppen
         }
         return graden;
     }
 
 
-    public static void rem() {
-        //zet moteoren stil
-        RobotMain.sLinks.update(1500);
-        RobotMain.sRechts.update(1500);
+    public static int checkWaarde(int x){
+            //als x > 1000 return dan 1 (soort van true)
+            if (x > 1000) {
+                return 1;
+                //anders 0 returnen (soort van false)
+            } else {
+                return 0;
+            }
+        }
 
-        BoeBot.wait(270);
+    public static int behindRechts () {
+        servoLinks.update(1600);
+        servoRechts.update(1485);
+        BoeBot.wait(300);
+        return 0;
     }
 
-
-    public static int waardes(int ilengte){
-        // als ilengte groter is dan 1000 return 1
-        if (ilengte > 1000) {
-            return 1;
-            //anders return 0
-        }else{
+        public static int goRechts () {
+            servoLinks.update(1450);
+            servoRechts.update(1600);
+            BoeBot.wait(300);
             return 0;
         }
 
-
-
-        public static int Rechts(){
-
-            RobotMain.sLinks.update(1450);
-            RobotMain.sRechts.update(1600);
-
-            BoeBot.wait(250);
+        public static int behindLeft() {
+            servoLinks.update(1601);
+            servoRechts.update(1420);
+            BoeBot.wait(300);
             return 0;
         }
 
-        public static int AchterRechts(){
-
-            RobotMain.sLinks.update(1600);
-            RobotMain.sRechts.update(1490);
-
-            BoeBot.wait(250);
+        public static int goLeft() {
+            servoLinks.update(1401);
+            servoRechts.update(1550);
+            BoeBot.wait(300);
             return 0;
         }
 
-
-        public static int links(){
-            RobotMain.sLinks.update(1401);
-            RobotMain.sRechts.update(1550);
-
-            BoeBot.wait(250);
-            return 0;
-        }
-
-
-        public static int AchterLinks(){
-            RobotMain.sLinks.update(1601);
-            RobotMain.sRechts.update(1420);
-
-            BoeBot.wait(250);
-            return 0;
-        }
-
-
-        public static int afstandbediening(String icode) {
-            //voer functie uit aandehand va icode
-
-            switch (icode) {
-                //Naar links voren
-                case "000000010000": return links();
+        public static int checkRemote(String remote){
+            //swtich voor wat de remote geeft
+            switch (remote) {
+                //naar links voren
+                case "000000010000":
+                    return goLeft();
                 //recht vooruit
-                case "100000010000": return toSpeed(200);
+                case "100000010000":
+                    return gaNaarSnelHeid(200);
                 //naar rechts voren
-                case "010000010000": return Rechts();
+                case "010000010000":
+                    return goRechts();
                 //draai 90 graden
-                case "110000010000": return turnDegrees(90, 30);
-                //STOP
-                case "001000010000": return emergencyBrake();
-                //Draai 90 graden
-                case "101000010000": return turnDegrees(-90, 30);
-                //Naar links achter
-                case "011000010000": return AchterLinks();
-                //volle kracht achteruit
-                case "111000010000": return toSpeed(-200);
+                case "110000010000":
+                    return draaiGraden(90, 30);
+                //stoppuh
+                case "001000010000":
+                    return noodRem();
+                //90 graden draaien
+                case "101000010000":
+                    return draaiGraden(-90, 30);
+                //links achter
+                case "011000010000":
+                    return behindLeft();
+                //achteruit
+                case "111000010000":
+                    return gaNaarSnelHeid(-200);
                 //naar rechts achter
-                case "000100010000": return AchterRechts();
-                case "100100010000": return 0;
-                default: return -1;
+                case "000100010000":
+                    return behindRechts();
+                case "100100010000":
+                    return 0;
+                default:
+                    return -1;
             }
-        }}
+        }
+
+
+        public static int noodRem() {
+            //zet beide motoren op stilstand = 1500
+            servoLinks.update(1500);
+            servoRechts.update(1500);
+            BoeBot.wait(2000); //wacht 2 seconden
+            return 0;
+        }
+    }
+

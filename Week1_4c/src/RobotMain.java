@@ -59,7 +59,7 @@ public class RobotMain {
                     BoeBot.digitalWrite(LED1, !LEDStateOne); //led1 aanzetten
                 }
             }
-            BoeBot.wait(1); //wacht 0,01 seconde en loop opnieuw
+            BoeBot.wait(25); //wacht 0,025 seconde en loop opnieuw
         }
     }
 }
