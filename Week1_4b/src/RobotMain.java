@@ -11,9 +11,9 @@ public class RobotMain {
         boolean LEDStateTwo = false;
 
         int button1 = 8;
-        int button2 = 9;
-        int LED1 = 0;
-        int LED2 = 1;
+        int button2 = 0;
+        int LED1 = 11;
+        int LED2 = 2;
 
         //zet timers op 1sec
         Timer timer1 = new Timer(1000);
